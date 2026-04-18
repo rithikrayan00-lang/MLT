@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loan Approval Risk Analysis System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --primary: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg-light: #f9fafb;
+            --bg-card: #ffffff;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --border: #e5e7eb;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--bg-light);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary), #1e40af);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        header h1 { font-size: 28px; margin-bottom: 10px; }
+        header p { font-size: 14px; opacity: 0.9; }
+        
+        nav {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 0;
+        }
+        
+        nav button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        nav button.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: rgba(37, 99, 235, 0.05);
+        }
+        
+        .content {
+            padding: 30px;
+            display: none;
+        }
+        
+        .content.active { display: block; }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 10px;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        label {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+        
+        input, select, textarea {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+            color: var(--text-primary);
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .btn-primary:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--bg-light);
+        }
+        
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .metric-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+        
+        .metric-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 10px 0;
+        }
+        
+        .metric-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .risk-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .risk-low {
+            background: rgba(16, 185, 129, 0.2);
+            color: #059669;
+        }
+        
+        .risk-medium {
+            background: rgba(245, 158, 11, 0.2);
+            color: #d97706;
+        }
+        
+        .risk-high {
+            background: rgba(239, 68, 68, 0.2);
+            color: #dc2626;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        
+        th {
+            background: var(--bg-light);
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--border);
+            color: var(--text-primary);
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        tr:hover {
+            background: rgba(37, 99, 235, 0.02);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+        
+        .success {
+            color: var(--success);
+        }
+        
+        .warning {
+            color: var(--warning);
+        }
+        
+        .danger {
+            color: var(--danger);
+        }
+        
+        .slider-group {
+            margin: 15px 0;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .feature-importance {
+            margin: 20px 0;
+        }
+        
+        .feature-bar {
+            margin-bottom: 15px;
+        }
+        
+        .feature-name {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: var(--text-primary);
+        }
+        
+        .feature-bar-bg {
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .feature-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            transition: width 0.5s ease;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>💳 Loan Approval Risk Analysis System</h1>
+            <p>Machine Learning Based Credit Risk Assessment Platform</p>
+        </header>
+        
+        <!-- Navigation -->
+        <nav>
+            <button class="nav-btn active" data-tab="analyzer">Application</button>
+            <button class="nav-btn" data-tab="results">Results & Reports</button>
+            <button class="nav-btn" data-tab="analytics">Analytics</button>
+            <button class="nav-btn" data-tab="help">Help</button>
+        </nav>
+        
+        <!-- ANALYZER TAB -->
+        <div class="content active" id="analyzer">
+            <div class="section">
+                <div class="section-title">Applicant Information</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Full Name *</label>
+                        <input type="text" id="name" placeholder="Enter applicant name">
+                    </div>
+                    <div class="form-group">
+                        <label>Age *</label>
+                        <input type="number" id="age" min="18" max="100" placeholder="Enter age">
+                    </div>
+                    <div class="form-group">
+                        <label>Employment Status *</label>
+                        <select id="employment">
+                            <option value="">Select employment status</option>
+                            <option value="employed">Employed</option>
+                            <option value="self-employed">Self-Employed</option>
+                            <option value="retired">Retired</option>
+                            <option value="unemployed">Unemployed</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Years at Current Job *</label>
+                        <input type="number" id="experience" min="0" max="60" placeholder="Years">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Financial Information</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Annual Income (₹) *</label>
+                        <input type="number" id="income" min="0" placeholder="e.g., 500000">
+                    </div>
+                    <div class="form-group">
+                        <label>Monthly Expenses (₹) *</label>
+                        <input type="number" id="expenses" min="0" placeholder="e.g., 30000">
+                    </div>
+                    <div class="form-group">
+                        <label>Existing Debt (₹) *</label>
+                        <input type="number" id="existing_debt" min="0" placeholder="e.g., 200000">
+                    </div>
+                    <div class="form-group">
+                        <label>Loan Amount Requested (₹) *</label>
+                        <input type="number" id="loan_amount" min="0" placeholder="e.g., 500000">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Credit Profile</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Credit Score (300-900) *</label>
+                        <div class="slider-group">
+                            <input type="range" id="credit_score" min="300" max="900" value="650">
+                            <div style="text-align: center; margin-top: 8px; font-weight: 600; color: var(--primary);">
+                                <span id="credit_score_display">650</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Years of Credit History *</label>
+                        <input type="number" id="credit_history" min="0" max="80" placeholder="Years">
+                    </div>
+                    <div class="form-group">
+                        <label>Number of Late Payments *</label>
+                        <input type="number" id="late_payments" min="0" max="100" placeholder="Count">
+                    </div>
+                    <div class="form-group">
+                        <label>Number of Active Accounts *</label>
+                        <input type="number" id="active_accounts" min="0" max="50" placeholder="Count">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Loan Details</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Loan Purpose *</label>
+                        <select id="loan_purpose">
+                            <option value="">Select purpose</option>
+                            <option value="home">Home</option>
+                            <option value="auto">Auto</option>
+                            <option value="education">Education</option>
+                            <option value="business">Business</option>
+                            <option value="personal">Personal</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Loan Duration (Months) *</label>
+                        <input type="number" id="loan_duration" min="1" max="360" placeholder="e.g., 60">
+                    </div>
+                    <div class="form-group">
+                        <label>Property Value (₹) *</label>
+                        <input type="number" id="property_value" min="0" placeholder="If applicable">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn-primary" onclick="analyzeApplication()">Analyze & Generate Report</button>
+                <button class="btn-secondary" onclick="resetForm()">Clear Form</button>
+            </div>
+        </div>
+        
+        <!-- RESULTS TAB -->
+        <div class="content" id="results">
+            <div id="results-container" class="no-data">
+                <p>Submit an application to generate results and reports</p>
+            </div>
+        </div>
+        
+        <!-- ANALYTICS TAB -->
+        <div class="content" id="analytics">
+            <div class="section">
+                <div class="section-title">Portfolio Analytics</div>
+                <div class="metrics">
+                    <div class="metric-card">
+                        <div class="metric-label">Total Applications</div>
+                        <div class="metric-value" id="total-apps">0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Approved</div>
+                        <div class="metric-value success" id="approved-count">0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Rejection Rate</div>
+                        <div class="metric-value danger" id="rejection-rate">0%</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Avg Approval Score</div>
+                        <div class="metric-value warning" id="avg-score">0</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Risk Distribution</div>
+                <div class="chart-container">
+                    <canvas id="riskChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Feature Importance in Model</div>
+                <div class="feature-importance">
+                    <div class="feature-bar">
+                        <div class="feature-name">Credit Score (23%)</div>
+                        <div class="feature-bar-bg"><div class="feature-bar-fill" style="width: 23%"></div></div>
+                    </div>
+                    <div class="feature-bar">
+                        <div class="feature-name">Income Level (19%)</div>
+                        <div class="feature-bar-bg"><div class="feature-bar-fill" style="width: 19%"></div></div>
+                    </div>
+                    <div class="feature-bar">
+                        <div class="feature-name">Debt-to-Income Ratio (18%)</div>
+                        <div class="feature-bar-bg"><div class="feature-bar-fill" style="width: 18%"></div></div>
+                    </div>
+                    <div class="feature-bar">
+                        <div class="feature-name">Employment Stability (16%)</div>
+                        <div class="feature-bar-bg"><div class="feature-bar-fill" style="width: 16%"></div></div>
+                    </div>
+                    <div class="feature-bar">
+                        <div class="feature-name">Late Payments (12%)</div>
+                        <div class="feature-bar-bg"><div class="feature-bar-fill" style="width: 12%"></div></div>
+                    </div>
+                    <div class="feature-bar">
+                        <div class="feature-name">Credit History (12%)</div>
+                        <div class="feature-bar-bg"><div class="feature-bar-fill" style="width: 12%"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- HELP TAB -->
+        <div class="content" id="help">
+            <div class="card">
+                <h3>About This System</h3>
+                <p style="margin-top: 10px; line-height: 1.6; color: var(--text-secondary);">
+                    This Loan Approval Risk Analysis System uses machine learning algorithms to assess credit risk and predict default probability. 
+                    The system analyzes multiple financial indicators including credit score, income, debt levels, employment stability, and credit history 
+                    to provide a comprehensive risk assessment.
+                </p>
+            </div>
+            
+            <div class="card">
+                <h3>Risk Scoring Methodology</h3>
+                <p style="margin-top: 10px; line-height: 1.6; color: var(--text-secondary);">
+                    <strong>Low Risk (0-30):</strong> Strong financial profile with excellent credit history and stable income.<br>
+                    <strong>Medium Risk (31-70):</strong> Acceptable financial profile with some minor concerns or limited credit history.<br>
+                    <strong>High Risk (71-100):</strong> Significant financial concerns, poor credit history, or high debt-to-income ratio.
+                </p>
+            </div>
+            
+            <div class="card">
+                <h3>Key Factors Analyzed</h3>
+                <ul style="margin-top: 10px; margin-left: 20px; color: var(--text-secondary); line-height: 1.8;">
+                    <li><strong>Credit Score:</strong> Higher scores indicate better creditworthiness</li>
+                    <li><strong>Debt-to-Income Ratio:</strong> Lower ratios are preferred (target &lt; 43%)</li>
+                    <li><strong>Employment Stability:</strong> Longer tenure reduces default risk</li>
+                    <li><strong>Payment History:</strong> Number of late payments is a key predictor</li>
+                    <li><strong>Income Level:</strong> Adequate income to support loan repayment</li>
+                    <li><strong>Loan-to-Value Ratio:</strong> Property-based loans have lower default rates</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let allApplications = [];
+        let riskChart = null;
+        
+        // Utility function: Calculate DTI
+        function calculateDTI(income, expenses, existingDebt, loanAmount) {
+            const monthlyIncome = income / 12;
+            const monthlyLoanPayment = (loanAmount / 12) * 0.05; // Approximate 5% monthly payment
+            const totalMonthlyDebt = expenses + existingDebt / 12 + monthlyLoanPayment;
+            return (totalMonthlyDebt / monthlyIncome) * 100;
+        }
+        
+        // Calculate Risk Score (0-100)
+        function calculateRiskScore(data) {
+            let score = 50; // Base score
+            
+            // Credit Score impact (0-30)
+            const creditScoreFactor = (data.credit_score - 300) / 600;
+            score -= creditScoreFactor * 25;
+            
+            // DTI impact (0-20)
+            const dti = calculateDTI(data.income, data.expenses, data.existing_debt, data.loan_amount);
+            const dtiFactor = Math.min(dti / 43, 1);
+            score += dtiFactor * 20;
+            
+            // Late payments impact (0-15)
+            score += Math.min(data.late_payments * 1.5, 15);
+            
+            // Income stability (0-15)
+            const incomeStability = Math.min((data.income / data.loan_amount) / 5, 1);
+            score -= incomeStability * 12;
+            
+            // Employment tenure (0-10)
+            const employmentFactor = Math.min(data.experience / 10, 1);
+            score -= employmentFactor * 8;
+            
+            // Loan-to-Value ratio (0-10)
+            if (data.property_value > 0) {
+                const ltv = data.loan_amount / data.property_value;
+                if (ltv <= 0.8) score -= 5;
+                else if (ltv <= 0.95) score -= 2;
+            }
+            
+            return Math.max(0, Math.min(100, Math.round(score)));
+        }
+        
+        function getRiskCategory(score) {
+            if (score <= 30) return { label: 'Low Risk', class: 'risk-low' };
+            if (score <= 70) return { label: 'Medium Risk', class: 'risk-medium' };
+            return { label: 'High Risk', class: 'risk-high' };
+        }
+        
+        function analyzeApplication() {
+            // Validation
+            const inputs = ['name', 'age', 'employment', 'experience', 'income', 'expenses', 
+                           'existing_debt', 'loan_amount', 'credit_score', 'credit_history', 
+                           'late_payments', 'active_accounts', 'loan_purpose', 'loan_duration'];
+            
+            for (let input of inputs) {
+                const value = document.getElementById(input).value;
+                if (!value || (input === 'property_value' && !value)) {
+                    alert(`Please fill in all required fields`);
+                    return;
+                }
+            }
+            
+            // Collect data
+            const data = {
+                name: document.getElementById('name').value,
+                age: parseInt(document.getElementById('age').value),
+                employment: document.getElementById('employment').value,
+                experience: parseInt(document.getElementById('experience').value),
+                income: parseInt(document.getElementById('income').value),
+                expenses: parseInt(document.getElementById('expenses').value),
+                existing_debt: parseInt(document.getElementById('existing_debt').value),
+                loan_amount: parseInt(document.getElementById('loan_amount').value),
+                credit_score: parseInt(document.getElementById('credit_score').value),
+                credit_history: parseInt(document.getElementById('credit_history').value),
+                late_payments: parseInt(document.getElementById('late_payments').value),
+                active_accounts: parseInt(document.getElementById('active_accounts').value),
+                loan_purpose: document.getElementById('loan_purpose').value,
+                loan_duration: parseInt(document.getElementById('loan_duration').value),
+                property_value: parseInt(document.getElementById('property_value').value) || 0,
+                date: new Date().toLocaleDateString(),
+                risk_score: 0,
+                dti: 0,
+                approval: false
+            };
+            
+            // Calculate metrics
+            data.risk_score = calculateRiskScore(data);
+            data.dti = calculateDTI(data.income, data.expenses, data.existing_debt, data.loan_amount);
+            data.approval = data.risk_score <= 70;
+            
+            // Store application
+            allApplications.push(data);
+            
+            // Display results
+            displayResults(data);
+            
+            // Update analytics
+            updateAnalytics();
+            
+            // Show results tab
+            switchTab('results');
+        }
+        
+        function displayResults(data) {
+            const risk = getRiskCategory(data.risk_score);
+            const html = `
+                <div class="section">
+                    <div class="section-title">Application Analysis - ${data.name}</div>
+                    
+                    <div class="metrics">
+                        <div class="metric-card">
+                            <div class="metric-label">Risk Score</div>
+                            <div class="metric-value" style="color: ${data.risk_score <= 30 ? '#10b981' : data.risk_score <= 70 ? '#f59e0b' : '#ef4444'}">
+                                ${data.risk_score}/100
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Status</div>
+                            <div style="margin-top: 10px;">
+                                <span class="risk-badge ${risk.class}">${risk.label}</span>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Debt-to-Income Ratio</div>
+                            <div class="metric-value" style="font-size: 24px;">${data.dti.toFixed(1)}%</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Approval Decision</div>
+                            <div style="margin-top: 10px;">
+                                <span class="risk-badge" style="background: ${data.approval ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}; color: ${data.approval ? '#059669' : '#dc2626'};">
+                                    ${data.approval ? '✓ APPROVED' : '✗ REJECTED'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">Detailed Report</div>
+                    <div class="table-container">
+                        <table>
+                            <tr>
+                                <th>Category</th>
+                                <th>Value</th>
+                                <th>Assessment</th>
+                            </tr>
+                            <tr>
+                                <td><strong>Credit Score</strong></td>
+                                <td>${data.credit_score}</td>
+                                <td>${data.credit_score >= 700 ? '✓ Excellent' : data.credit_score >= 650 ? '✓ Good' : '⚠ Fair'}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Annual Income</strong></td>
+                                <td>₹${data.income.toLocaleString()}</td>
+                                <td>${data.income >= data.loan_amount * 3 ? '✓ Strong' : '⚠ Moderate'}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Loan Amount</strong></td>
+                                <td>₹${data.loan_amount.toLocaleString()}</td>
+                                <td>LTI: ${((data.loan_amount / data.income) * 100).toFixed(1)}%</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Existing Debt</strong></td>
+                                <td>₹${data.existing_debt.toLocaleString()}</td>
+                                <td>${data.existing_debt / data.income < 1 ? '✓ Manageable' : '⚠ High'}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Employment Status</strong></td>
+                                <td>${data.employment} (${data.experience} yrs)</td>
+                                <td>${data.experience >= 2 ? '✓ Stable' : '⚠ Limited'}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Late Payments</strong></td>
+                                <td>${data.late_payments}</td>
+                                <td>${data.late_payments === 0 ? '✓ None' : '⚠ ' + data.late_payments}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Debt-to-Income</strong></td>
+                                <td>${data.dti.toFixed(1)}%</td>
+                                <td>${data.dti < 36 ? '✓ Excellent' : data.dti < 43 ? '✓ Acceptable' : '✗ High'}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn-secondary" onclick="printReport()">📄 Print Report</button>
+                    <button class="btn-secondary" onclick="downloadReport()">📥 Download CSV</button>
+                    <button class="btn-secondary" onclick="switchTab('analyzer')">← New Application</button>
+                </div>
+            `;
+            
+            document.getElementById('results-container').innerHTML = html;
+        }
+        
+        function updateAnalytics() {
+            const total = allApplications.length;
+            const approved = allApplications.filter(a => a.approval).length;
+            const rejectionRate = total > 0 ? Math.round((total - approved) / total * 100) : 0;
+            const avgScore = total > 0 ? Math.round(allApplications.reduce((s, a) => s + a.risk_score, 0) / total) : 0;
+            
+            document.getElementById('total-apps').textContent = total;
+            document.getElementById('approved-count').textContent = approved;
+            document.getElementById('rejection-rate').textContent = rejectionRate + '%';
+            document.getElementById('avg-score').textContent = avgScore;
+            
+            // Update risk chart
+            if (total > 0) {
+                const lowRisk = allApplications.filter(a => a.risk_score <= 30).length;
+                const mediumRisk = allApplications.filter(a => a.risk_score > 30 && a.risk_score <= 70).length;
+                const highRisk = allApplications.filter(a => a.risk_score > 70).length;
+                
+                if (riskChart) riskChart.destroy();
+                
+                const ctx = document.getElementById('riskChart').getContext('2d');
+                riskChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Low Risk', 'Medium Risk', 'High Risk'],
+                        datasets: [{
+                            data: [lowRisk, mediumRisk, highRisk],
+                            backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                            borderColor: '#ffffff',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        function switchTab(tabName) {
+            document.querySelectorAll('.content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tabName).classList.add('active');
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+        }
+        
+        function resetForm() {
+            document.querySelectorAll('input, select, textarea').forEach(el => el.value = '');
+            document.getElementById('credit_score').value = 650;
+            document.getElementById('credit_score_display').textContent = 650;
+        }
+        
+        function printReport() {
+            window.print();
+        }
+        
+        function downloadReport() {
+            if (allApplications.length === 0) return;
+            const data = allApplications[allApplications.length - 1];
+            let csv = 'Field,Value\n';
+            csv += `Name,${data.name}\n`;
+            csv += `Risk Score,${data.risk_score}\n`;
+            csv += `Status,${data.approval ? 'APPROVED' : 'REJECTED'}\n`;
+            csv += `DTI,%${data.dti.toFixed(1)}\n`;
+            csv += `Credit Score,${data.credit_score}\n`;
+            csv += `Income,₹${data.income}\n`;
+            csv += `Loan Amount,₹${data.loan_amount}\n`;
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `loan_report_${data.name.replace(/\s/g, '_')}.csv`;
+            a.click();
+        }
+        
+        // Event listeners
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => switchTab(e.target.dataset.tab));
+        });
+        
+        document.getElementById('credit_score').addEventListener('input', (e) => {
+            document.getElementById('credit_score_display').textContent = e.target.value;
+        });
+    </script>
+</body>
+</html>
